@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理画面 — Shoji Yamamoto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white: #ffffff;
+  --cream: #f5f3ee;
+  --border: #e2dfd8;
+  --stone: #999080;
+  --muted: #6b6458;
+  --ink: #1a1815;
+  --ink2: #2c2a26;
+  --green: #6b9a72;
+  --gold: #b89060;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; min-height:100vh; }
+
+/* ── LOGIN ── */
+.login-wrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:2rem; }
+.login-box { background:var(--white); border-radius:12px; padding:2.5rem; box-shadow:0 8px 40px rgba(0,0,0,.1); width:100%; max-width:380px; }
+.login-logo { font-family:'Noto Serif JP',serif; font-size:1.6rem; font-weight:700; text-align:center; color:var(--ink); margin-bottom:.5rem; }
+.login-sub { font-size:.75rem; color:var(--stone); text-align:center; margin-bottom:2rem; }
+.login-field { margin-bottom:1rem; }
+.login-label { font-size:.7rem; font-weight:500; color:var(--muted); letter-spacing:.08em; margin-bottom:.4rem; display:block; }
+.login-input { width:100%; padding:.7rem .9rem; border:1px solid var(--border); border-radius:6px; font-size:.85rem; font-family:inherit; outline:none; transition:border-color .2s; }
+.login-input:focus { border-color:var(--gold); }
+.login-btn { display:block; width:100%; padding:.8rem; background:var(--ink); color:var(--white); border:none; border-radius:6px; font-size:.82rem; font-weight:600; cursor:pointer; margin-top:1.2rem; transition:background .2s; }
+.login-btn:hover { background:var(--gold); }
+.login-err { color:#c06060; font-size:.75rem; text-align:center; margin-top:.8rem; min-height:1.2em; }
+
+/* ── ADMIN LAYOUT ── */
+.admin-app { display:none; }
+.admin-header { background:var(--white); border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10; }
+.admin-logo { font-family:'Noto Serif JP',serif; font-size:1.1rem; font-weight:600; color:var(--ink); }
+.admin-logo span { font-size:.65rem; color:var(--stone); font-weight:400; margin-left:.8rem; letter-spacing:.1em; }
+.admin-logout { padding:.4rem 1rem; border:1px solid var(--border); border-radius:4px; background:none; font-size:.72rem; color:var(--muted); cursor:pointer; transition:all .2s; }
+.admin-logout:hover { border-color:#c06060; color:#c06060; }
+
+.admin-nav { background:var(--white); border-bottom:1px solid var(--border); padding:0 2rem; display:flex; gap:0; overflow-x:auto; }
+.admin-nav-btn { padding:.9rem 1.5rem; font-size:.75rem; font-weight:500; color:var(--stone); border:none; background:none; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; white-space:nowrap; }
+.admin-nav-btn.active { color:var(--ink); border-bottom-color:var(--gold); }
+.admin-nav-btn:hover { color:var(--ink); }
+
+.admin-content { max-width:800px; margin:2rem auto; padding:0 2rem; }
+.admin-card { background:var(--white); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1.5rem; }
+.admin-card h3 { font-family:'Noto Serif JP',serif; font-size:.95rem; font-weight:500; color:var(--ink); margin-bottom:1rem; }
+.admin-card p.desc { font-size:.78rem; color:var(--stone); line-height:1.8; margin-bottom:1rem; }
+
+/* ── FIELDS ── */
+.field { margin-bottom:1rem; }
+.field label { font-size:.7rem; font-weight:500; color:var(--muted); letter-spacing:.06em; margin-bottom:.4rem; display:block; }
+.field input, .field textarea, .field select { width:100%; padding:.65rem .8rem; border:1px solid var(--border); border-radius:6px; font-size:.82rem; font-family:inherit; outline:none; transition:border-color .2s; }
+.field input:focus, .field textarea:focus { border-color:var(--gold); }
+.field textarea { resize:vertical; line-height:1.8; }
+
+.btn { display:inline-block; padding:.6rem 1.2rem; border-radius:6px; font-size:.78rem; font-weight:500; border:none; cursor:pointer; transition:all .2s; }
+.btn-primary { background:var(--ink); color:var(--white); }
+.btn-primary:hover { background:var(--gold); }
+.btn-secondary { background:var(--cream); color:var(--ink); border:1px solid var(--border); }
+.btn-secondary:hover { border-color:var(--ink); }
+.btn-danger { background:none; color:#c06060; border:1px solid #c06060; }
+.btn-danger:hover { background:#c06060; color:var(--white); }
+.btn-sm { padding:.4rem .8rem; font-size:.7rem; }
+
+/* ── TOUR LIST ── */
+.tour-item { display:flex; align-items:center; gap:1rem; padding:.8rem; border:1px solid var(--border); border-radius:6px; margin-bottom:.5rem; background:var(--cream); }
+.tour-item-info { flex:1; overflow:hidden; }
+.tour-item-date { font-size:.68rem; color:var(--gold); }
+.tour-item-title { font-size:.82rem; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tour-item-btns { display:flex; gap:.3rem; flex-shrink:0; }
+
+/* ── INBOX ── */
+.inbox-item { border:1px solid var(--border); border-radius:6px; padding:1rem; margin-bottom:.6rem; background:var(--white); position:relative; }
+.inbox-item.unread { border-left:3px solid var(--gold); }
+.inbox-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+.inbox-name { font-size:.85rem; font-weight:500; color:var(--ink); }
+.inbox-date { font-size:.68rem; color:var(--stone); }
+.inbox-email { font-size:.75rem; color:var(--muted); margin-bottom:.3rem; }
+.inbox-tour { font-size:.72rem; color:var(--gold); margin-bottom:.4rem; }
+.inbox-msg { font-size:.8rem; color:var(--ink2); line-height:1.8; }
+.inbox-del { position:absolute; top:.6rem; right:.8rem; background:none; border:none; font-size:1rem; cursor:pointer; color:var(--stone); }
+.inbox-del:hover { color:#c06060; }
+
+/* ── AREA TAGS ── */
+.area-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .8rem; border:1px solid var(--border); border-radius:20px; font-size:.75rem; color:var(--ink2); background:var(--cream); margin:.2rem; }
+.area-chip button { background:none; border:none; cursor:pointer; color:var(--stone); font-size:.8rem; }
+.area-chip button:hover { color:#c06060; }
+
+/* ── TOAST ── */
+.toast { position:fixed; top:1rem; right:1rem; background:var(--green); color:var(--white); padding:.7rem 1.2rem; border-radius:6px; font-size:.8rem; font-weight:500; z-index:999; opacity:0; transform:translateY(-10px); transition:all .3s; pointer-events:none; }
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .admin-header { padding:.8rem 1.2rem; }
+  .admin-nav { padding:0 1rem; }
+  .admin-nav-btn { padding:.7rem 1rem; font-size:.7rem; }
+  .admin-content { padding:0 1rem; margin:1rem auto; }
+  .admin-card { padding:1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ── -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">山本昌司</div>
+    <div class="login-sub">管理画面</div>
+    <div class="login-field">
+      <label class="login-label">パスワード</label>
+      <input type="password" class="login-input" id="login-pw" placeholder="パスワードを入力" autofocus>
+    </div>
+    <button class="login-btn" id="login-btn">ログイン</button>
+    <p class="login-err" id="login-err"></p>
+  </div>
+</div>
+
+<!-- ── ADMIN APP ── -->
+<div class="admin-app" id="admin-app">
+  <div class="admin-header">
+    <div class="admin-logo">管理画面 <span>Shoji Yamamoto</span></div>
+    <button class="admin-logout" id="logout-btn">ログアウト</button>
+  </div>
+  <div class="admin-nav" id="admin-nav">
+    <button class="admin-nav-btn active" data-tab="inbox">📬 メッセージ</button>
+    <button class="admin-nav-btn" data-tab="schedule">📅 スケジュール</button>
+    <button class="admin-nav-btn" data-tab="tours">🏔 ツアー</button>
+    <button class="admin-nav-btn" data-tab="profile">👤 プロフィール</button>
+    <button class="admin-nav-btn" data-tab="areas">📍 エリア</button>
+    <button class="admin-nav-btn" data-tab="note">📝 note連携</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="admin-content">
+
+    <!-- INBOX -->
+    <div id="tab-inbox">
+      <div class="admin-card">
+        <h3>📬 受信メッセージ</h3>
+        <div id="inbox-list"></div>
+        <button class="btn btn-danger btn-sm" id="clear-inbox" style="display:none;margin-top:.8rem">すべて削除</button>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div id="tab-schedule" style="display:none">
+      <div class="admin-card">
+        <h3>📅 スケジュール管理</h3>
+        <p class="desc">公開サイトのカレンダーに表示される予定を管理します。追加・削除すると公開サイトに即反映されます。</p>
+        <div id="schedule-list"></div>
+      </div>
+      <div class="admin-card">
+        <h3>予定を追加</h3>
+        <div class="field"><label>日付</label><input type="date" id="sc-date"></div>
+        <div class="field"><label>タイトル</label><input type="text" id="sc-title" placeholder="例：丹沢ハイキング"></div>
+        <div class="field"><label>時間（任意）</label><input type="text" id="sc-time" placeholder="例：09:00 または 終日"></div>
+        <div class="field"><label>詳細（任意）</label><textarea id="sc-desc" rows="2" placeholder="詳細説明"></textarea></div>
+        <button class="btn btn-primary" id="sc-add-btn" style="margin-top:.5rem">＋ 予定を追加</button>
+      </div>
+    </div>
+
+    <!-- TOURS -->
+    <div id="tab-tours" style="display:none">
+      <div class="admin-card">
+        <h3>🏔 ツアー管理</h3>
+        <p class="desc">公開サイトに表示されるツアー一覧を管理します。</p>
+        <div id="tour-list"></div>
+        <button class="btn btn-primary" id="add-tour-btn" style="margin-top:.8rem">＋ ツアーを追加</button>
+      </div>
+
+      <!-- Tour edit form -->
+      <div class="admin-card" id="tour-form-card" style="display:none">
+        <h3 id="tour-form-title">ツアーを追加</h3>
+        <input type="hidden" id="tour-edit-idx">
+        <div class="field"><label>日付</label><input type="text" id="tf-date" placeholder="例：5月21日（土）"></div>
+        <div class="field"><label>タイトル</label><input type="text" id="tf-title" placeholder="ツアー名"></div>
+        <div class="field"><label>詳細</label><textarea id="tf-detail" rows="3" placeholder="詳細説明"></textarea></div>
+        <div class="field"><label>レベル</label><input type="text" id="tf-level" placeholder="例：初心者、中級者"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem">
+          <button class="btn btn-primary" id="tour-save-btn">保存</button>
+          <button class="btn btn-secondary" id="tour-cancel-btn">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="tab-profile" style="display:none">
+      <div class="admin-card">
+        <h3>👤 プロフィール文章</h3>
+        <p class="desc">公開サイトのプロフィールセクションに表示される文章です。</p>
+        <div class="field"><textarea id="bio-text" rows="6"></textarea></div>
+        <button class="btn btn-primary" id="save-bio-btn">保存</button>
+      </div>
+    </div>
+
+    <!-- AREAS -->
+    <div id="tab-areas" style="display:none">
+      <div class="admin-card">
+        <h3>📍 エリアタグ</h3>
+        <p class="desc">お問い合わせページに表示するエリアを管理します。</p>
+        <div id="area-chips"></div>
+        <div style="display:flex;gap:.5rem;margin-top:1rem">
+          <input type="text" id="area-input" class="login-input" placeholder="新しいエリア名" style="flex:1">
+          <button class="btn btn-primary" id="area-add-btn">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTE -->
+    <div id="tab-note" style="display:none">
+      <div class="admin-card">
+        <h3>📝 note連携</h3>
+        <p class="desc">noteのユーザー名を入力すると、記事が自動で表示されます。<br>例：https://note.com/<strong>username</strong> の「username」部分</p>
+        <div class="field"><label>noteユーザー名</label><input type="text" id="note-username" placeholder="例：yamamoto_shoji"></div>
+        <button class="btn btn-primary" id="save-note-btn">保存して反映</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASS = 'yamamoto2024';
+const DEFAULT_TOURS = [
+  {date:'5月21日（土）', title:'はじめての地図読み・西丹沢前衛／シダンゴ山', detail:'日帰り：歩行3時間　地図まったくの初心者向け。「尾根」「沢」「等高線」から丁寧に解説します。', level:'初心者'},
+  {date:'5月22日（日）', title:'富士山展望ハイク・新緑の王岳 ステップアップ八ヶ岳', detail:'日帰り：歩行5時間20分。残雪の富士と静寂の西湖を仰ぎ見ながら、展望の頂を目指しましょう。', level:'中級者'},
+  {date:'5月28〜29日', title:'はじめての山小屋泊・雲取山と雲取山荘', detail:'1泊2日。日帰りハイキングから一歩踏み出したい方、山小屋に泊まってみませんか？東京都最高峰・日本百名山。', level:'初〜中級'},
+  {date:'7月2〜3日', title:'今年こそ富士山へ vol.1・吉田口登山道', detail:'1泊2日。梅雨真っ只中のため登山道は空いています。富士山シーズンのトップバッターとして山頂を目指しましょう。', level:'全レベル'},
+];
+const DEFAULT_AREAS = ['北アルプス','南アルプス','八ヶ岳','丹沢','富士山','その他'];
+
+// ── STATE ──
+let isLoggedIn = false;
+let tours = JSON.parse(localStorage.getItem('admin_tours') || 'null') || DEFAULT_TOURS;
+let currentTab = 'inbox';
+let editingTourIdx = -1;
+
+// ── TOAST ──
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── LOGIN ──
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pw').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if (pw === ADMIN_PASS) {
+    isLoggedIn = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-err').textContent = 'パスワードが違います';
+  }
+}
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  isLoggedIn = false;
+  document.getElementById('admin-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-err').textContent = '';
+});
+
+// ── TABS ──
+document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['inbox','schedule','tours','profile','areas','note'].forEach(t => {
+      document.getElementById('tab-'+t).style.display = t === currentTab ? 'block' : 'none';
+    });
+  });
+});
+
+// ── LOAD ALL ──
+function loadAll() {
+  renderInbox();
+  renderSchedule();
+  renderTours();
+  loadBio();
+  renderAreas();
+  loadNote();
+}
+
+// ── INBOX ──
+function renderInbox() {
+  const inbox = JSON.parse(localStorage.getItem('inbox_messages') || '[]');
+  const el = document.getElementById('inbox-list');
+  const clearBtn = document.getElementById('clear-inbox');
+
+  if (inbox.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--stone);text-align:center;padding:2rem">メッセージはありません</p>';
+    clearBtn.style.display = 'none';
+    return;
+  }
+  clearBtn.style.display = 'inline-block';
+
+  el.innerHTML = inbox.map(m => `
+    <div class="inbox-item ${m.unread ? 'unread' : ''}">
+      <button class="inbox-del" onclick="deleteMsg(${m.id})">✕</button>
+      <div class="inbox-head">
+        <span class="inbox-name">${m.name}${m.unread ? ' <span style="color:var(--gold);font-size:.65rem">NEW</span>' : ''}</span>
+        <span class="inbox-date">${m.date}</span>
+      </div>
+      <div class="inbox-email">✉ ${m.email}</div>
+      ${m.tour ? `<div class="inbox-tour">📍 ${m.tour}${m.people ? ' · '+m.people : ''}${m.level ? ' · '+m.level : ''}</div>` : ''}
+      <div class="inbox-msg">${(m.message||'').replace(/</g,'&lt;')}</div>
+    </div>`).join('');
+
+  // Mark as read
+  const updated = inbox.map(m => ({...m, unread: false}));
+  localStorage.setItem('inbox_messages', JSON.stringify(updated));
+}
+
+function deleteMsg(id) {
+  if (!confirm('このメッセージを削除しますか？')) return;
+  const inbox = JSON.parse(localStorage.getItem('inbox_messages') || '[]');
+  localStorage.setItem('inbox_messages', JSON.stringify(inbox.filter(m => m.id !== id)));
+  renderInbox();
+  toast('メッセージを削除しました');
+}
+
+document.getElementById('clear-inbox').addEventListener('click', () => {
+  if (confirm('すべてのメッセージを削除しますか？')) {
+    localStorage.removeItem('inbox_messages');
+    renderInbox();
+    toast('すべて削除しました');
+  }
+});
+
+// ── TOURS ──
+function renderTours() {
+  const el = document.getElementById('tour-list');
+  if (tours.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--stone);text-align:center;padding:1rem">ツアーがありません</p>';
+    return;
+  }
+  el.innerHTML = tours.map((t, i) => `
+    <div class="tour-item">
+      <div class="tour-item-info">
+        <div class="tour-item-date">${t.date}</div>
+        <div class="tour-item-title">${t.title}</div>
+      </div>
+      <div class="tour-item-btns">
+        <button class="btn btn-secondary btn-sm" onclick="editTour(${i})">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTour(${i})">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+function saveTours() {
+  localStorage.setItem('admin_tours', JSON.stringify(tours));
+}
+
+document.getElementById('add-tour-btn').addEventListener('click', () => {
+  editingTourIdx = -1;
+  document.getElementById('tour-form-title').textContent = '新しいツアーを追加';
+  ['tf-date','tf-title','tf-detail','tf-level'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tour-form-card').style.display = 'block';
+});
+
+function editTour(i) {
+  editingTourIdx = i;
+  const t = tours[i];
+  document.getElementById('tour-form-title').textContent = 'ツアーを編集';
+  document.getElementById('tf-date').value = t.date;
+  document.getElementById('tf-title').value = t.title;
+  document.getElementById('tf-detail').value = t.detail;
+  document.getElementById('tf-level').value = t.level;
+  document.getElementById('tour-form-card').style.display = 'block';
+}
+
+function deleteTour(i) {
+  if (confirm('「'+tours[i].title.slice(0,20)+'…」を削除しますか？')) {
+    tours.splice(i, 1);
+    saveTours();
+    renderTours();
+    toast('ツアーを削除しました');
+  }
+}
+
+document.getElementById('tour-save-btn').addEventListener('click', () => {
+  const t = {
+    date: document.getElementById('tf-date').value.trim(),
+    title: document.getElementById('tf-title').value.trim(),
+    detail: document.getElementById('tf-detail').value.trim(),
+    level: document.getElementById('tf-level').value.trim(),
+  };
+  if (!t.title) { alert('タイトルを入力してください'); return; }
+  if (editingTourIdx >= 0) tours[editingTourIdx] = t;
+  else tours.push(t);
+  saveTours();
+  renderTours();
+  document.getElementById('tour-form-card').style.display = 'none';
+  toast(editingTourIdx >= 0 ? 'ツアーを更新しました' : 'ツアーを追加しました');
+});
+
+document.getElementById('tour-cancel-btn').addEventListener('click', () => {
+  document.getElementById('tour-form-card').style.display = 'none';
+});
+
+// ── PROFILE BIO ──
+function loadBio() {
+  const bio = localStorage.getItem('admin_bio') || '';
+  document.getElementById('bio-text').value = bio;
+}
+
+document.getElementById('save-bio-btn').addEventListener('click', () => {
+  const bio = document.getElementById('bio-text').value.trim();
+  localStorage.setItem('admin_bio', bio);
+  toast('プロフィールを保存しました');
+});
+
+// ── AREAS ──
+function getAreas() {
+  const saved = localStorage.getItem('admin_areas');
+  return saved ? JSON.parse(saved) : DEFAULT_AREAS;
+}
+
+function renderAreas() {
+  const areas = getAreas();
+  const el = document.getElementById('area-chips');
+  if (areas.length === 0) {
+    el.innerHTML = '<p style="font-size:.78rem;color:var(--stone)">エリアがありません</p>';
+    return;
+  }
+  el.innerHTML = areas.map((a, i) => `
+    <span class="area-chip">${a} <button onclick="removeArea(${i})">✕</button></span>`).join('');
+}
+
+function removeArea(i) {
+  const areas = getAreas();
+  areas.splice(i, 1);
+  localStorage.setItem('admin_areas', JSON.stringify(areas));
+  renderAreas();
+  toast('エリアを削除しました');
+}
+
+document.getElementById('area-add-btn').addEventListener('click', addArea);
+document.getElementById('area-input').addEventListener('keydown', e => { if (e.key==='Enter') addArea(); });
+
+function addArea() {
+  const input = document.getElementById('area-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const areas = getAreas();
+  if (areas.includes(val)) { alert('すでに登録されています'); return; }
+  areas.push(val);
+  localStorage.setItem('admin_areas', JSON.stringify(areas));
+  input.value = '';
+  renderAreas();
+  toast('「'+val+'」を追加しました');
+}
+
+// ── SCHEDULE ──
+function getCalEvents() {
+  return JSON.parse(localStorage.getItem('admin_cal_events') || '[]');
+}
+function saveCalEvents(evts) {
+  localStorage.setItem('admin_cal_events', JSON.stringify(evts));
+}
+function renderSchedule() {
+  const el = document.getElementById('schedule-list');
+  if (!el) return;
+  const evts = getCalEvents();
+  if (evts.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--stone);text-align:center;padding:1rem">予定がありません</p>';
+    return;
+  }
+  el.innerHTML = evts.map((e, i) => `
+    <div class="tour-item">
+      <div class="tour-item-info">
+        <div class="tour-item-date">${e.date} ${e.time || ''}</div>
+        <div class="tour-item-title">${e.title}</div>
+        ${e.desc ? '<div style="font-size:.72rem;color:var(--stone);margin-top:.2rem;">'+e.desc+'</div>' : ''}
+      </div>
+      <div class="tour-item-btns">
+        <button class="btn btn-secondary btn-sm" onclick="editSchedule(${i})">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSchedule(${i})">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+function deleteSchedule(i) {
+  const evts = getCalEvents();
+  if (!confirm('「' + evts[i].title.slice(0,20) + '」を削除しますか？')) return;
+  evts.splice(i, 1);
+  saveCalEvents(evts);
+  renderSchedule();
+  toast('予定を削除しました');
+}
+
+let editingScIdx = -1;
+function editSchedule(i) {
+  editingScIdx = i;
+  const e = getCalEvents()[i];
+  document.getElementById('sc-date').value = e.date;
+  document.getElementById('sc-title').value = e.title;
+  document.getElementById('sc-time').value = e.time || '';
+  document.getElementById('sc-desc').value = e.desc || '';
+  document.getElementById('sc-add-btn').textContent = '更新する';
+}
+
+document.getElementById('sc-add-btn').addEventListener('click', () => {
+  const date = document.getElementById('sc-date').value;
+  const title = document.getElementById('sc-title').value.trim();
+  const time = document.getElementById('sc-time').value.trim() || '終日';
+  const desc = document.getElementById('sc-desc').value.trim();
+  if (!date || !title) { alert('日付とタイトルを入力してください'); return; }
+  const evts = getCalEvents();
+  if (editingScIdx >= 0) {
+    evts[editingScIdx] = { date, title, time, desc };
+    editingScIdx = -1;
+    document.getElementById('sc-add-btn').textContent = '＋ 予定を追加';
+  } else {
+    evts.push({ date, title, time, desc });
+  }
+  evts.sort((a, b) => a.date.localeCompare(b.date));
+  saveCalEvents(evts);
+  document.getElementById('sc-date').value = '';
+  document.getElementById('sc-title').value = '';
+  document.getElementById('sc-time').value = '';
+  document.getElementById('sc-desc').value = '';
+  renderSchedule();
+  toast(editingScIdx >= 0 ? '予定を更新しました ✓' : '予定を追加しました ✓');
+});
+
+// ── NOTE ──
+function loadNote() {
+  document.getElementById('note-username').value = localStorage.getItem('note_username') || '';
+}
+
+document.getElementById('save-note-btn').addEventListener('click', () => {
+  const username = document.getElementById('note-username').value.trim().replace(/^@/, '');
+  if (!username) { alert('ユーザー名を入力してください'); return; }
+  localStorage.setItem('note_username', username);
+  toast('noteアカウントを保存しました');
+});
+</script>
+</body>
+</html>
