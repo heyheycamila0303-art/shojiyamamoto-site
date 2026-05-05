@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="山本管理">
+<title>管理画面 — Shoji Yamamoto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white: #ffffff;
+  --cream: #f5f3ee;
+  --border: #e2dfd8;
+  --stone: #999080;
+  --muted: #6b6458;
+  --ink: #1a1815;
+  --ink2: #2c2a26;
+  --green: #6b9a72;
+  --gold: #b89060;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { height:100%; -webkit-text-size-adjust:100%; }
+body { font-family:'DM Sans','Noto Serif JP',sans-serif; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; min-height:100%; overscroll-behavior:none; }
+
+/* ── LOGIN ── */
+.login-wrap { display:flex; align-items:center; justify-content:center; min-height:100vh; min-height:100dvh; padding:1.5rem; padding-top:calc(1.5rem + var(--safe-top)); }
+.login-box { background:var(--white); border-radius:16px; padding:2rem 1.5rem; box-shadow:0 8px 40px rgba(0,0,0,.08); width:100%; max-width:340px; }
+.login-logo { font-family:'Noto Serif JP',serif; font-size:1.5rem; font-weight:700; text-align:center; color:var(--ink); margin-bottom:.3rem; }
+.login-sub { font-size:.75rem; color:var(--stone); text-align:center; margin-bottom:1.8rem; }
+.login-field { margin-bottom:1rem; }
+.login-label { font-size:.7rem; font-weight:500; color:var(--muted); letter-spacing:.08em; margin-bottom:.4rem; display:block; }
+.login-input { width:100%; padding:.85rem 1rem; border:1px solid var(--border); border-radius:10px; font-size:16px; font-family:inherit; outline:none; transition:border-color .2s; -webkit-appearance:none; }
+.login-input:focus { border-color:var(--gold); }
+.login-btn { display:block; width:100%; padding:.9rem; background:var(--ink); color:var(--white); border:none; border-radius:10px; font-size:.88rem; font-weight:600; cursor:pointer; min-height:48px; -webkit-tap-highlight-color:transparent; }
+.login-btn:active { background:var(--gold); }
+.login-err { color:#c06060; font-size:.75rem; text-align:center; margin-top:.8rem; min-height:1.2em; }
+
+/* ── APP SHELL ── */
+.admin-app { display:none; min-height:100vh; min-height:100dvh; padding-bottom:calc(70px + var(--safe-bottom)); }
+
+/* ── HEADER ── */
+.admin-header { background:var(--white); border-bottom:1px solid var(--border); padding:calc(.6rem + var(--safe-top)) 1rem .6rem; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+.admin-logo { font-family:'Noto Serif JP',serif; font-size:1rem; font-weight:600; color:var(--ink); }
+.admin-logo span { font-size:.6rem; color:var(--stone); font-weight:400; margin-left:.5rem; }
+.admin-logout { padding:.5rem .8rem; border:1px solid var(--border); border-radius:8px; background:none; font-size:.72rem; color:var(--muted); min-height:36px; -webkit-tap-highlight-color:transparent; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; background:var(--white); border-top:1px solid var(--border); display:flex; z-index:50; padding-bottom:var(--safe-bottom); }
+.bottom-nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:.5rem .2rem; gap:.15rem; border:none; background:none; color:var(--stone); font-size:.58rem; font-family:inherit; min-height:54px; -webkit-tap-highlight-color:transparent; transition:color .15s; position:relative; }
+.bottom-nav-btn .nav-icon { font-size:1.25rem; line-height:1; }
+.bottom-nav-btn.active { color:var(--gold); }
+.bottom-nav-btn.active::after { content:''; position:absolute; top:0; left:25%; right:25%; height:2px; background:var(--gold); border-radius:0 0 2px 2px; }
+.bottom-nav-btn:active { color:var(--ink); }
+.badge { position:absolute; top:4px; right:50%; margin-right:-14px; background:#c06060; color:var(--white); font-size:.55rem; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+
+/* ── CONTENT ── */
+.admin-content { padding:.8rem; }
+.admin-card { background:var(--white); border:1px solid var(--border); border-radius:12px; padding:1.1rem; margin-bottom:.8rem; }
+.admin-card h3 { font-family:'Noto Serif JP',serif; font-size:.92rem; font-weight:500; color:var(--ink); margin-bottom:.8rem; }
+.admin-card p.desc { font-size:.78rem; color:var(--stone); line-height:1.7; margin-bottom:.8rem; }
+
+/* ── FIELDS ── */
+.field { margin-bottom:.8rem; }
+.field label { font-size:.7rem; font-weight:500; color:var(--muted); letter-spacing:.06em; margin-bottom:.35rem; display:block; }
+.field input, .field textarea, .field select { width:100%; padding:.75rem .9rem; border:1px solid var(--border); border-radius:10px; font-size:16px; font-family:inherit; outline:none; transition:border-color .2s; -webkit-appearance:none; background:var(--white); }
+.field input:focus, .field textarea:focus { border-color:var(--gold); }
+.field textarea { resize:vertical; line-height:1.8; }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; padding:.7rem 1.2rem; border-radius:10px; font-size:.82rem; font-weight:500; border:none; cursor:pointer; min-height:44px; -webkit-tap-highlight-color:transparent; transition:all .15s; }
+.btn-primary { background:var(--ink); color:var(--white); width:100%; }
+.btn-primary:active { background:var(--gold); }
+.btn-secondary { background:var(--cream); color:var(--ink); border:1px solid var(--border); }
+.btn-secondary:active { background:var(--border); }
+.btn-danger { background:none; color:#c06060; border:1px solid #c06060; }
+.btn-danger:active { background:#c06060; color:var(--white); }
+.btn-sm { padding:.5rem .8rem; font-size:.75rem; min-height:38px; border-radius:8px; }
+
+/* ── TOUR / SCHEDULE LIST ── */
+.tour-item { display:flex; flex-direction:column; gap:.5rem; padding:.8rem; border:1px solid var(--border); border-radius:10px; margin-bottom:.5rem; background:var(--cream); }
+.tour-item-info { flex:1; overflow:hidden; }
+.tour-item-date { font-size:.7rem; color:var(--gold); font-weight:500; }
+.tour-item-title { font-size:.85rem; color:var(--ink); }
+.tour-item-btns { display:flex; gap:.4rem; }
+.tour-item-btns .btn { flex:1; text-align:center; }
+
+/* ── INBOX ── */
+.inbox-item { border:1px solid var(--border); border-radius:10px; padding:.9rem; margin-bottom:.6rem; background:var(--white); position:relative; }
+.inbox-item.unread { border-left:3px solid var(--gold); }
+.inbox-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.3rem; }
+.inbox-name { font-size:.88rem; font-weight:500; color:var(--ink); }
+.inbox-date { font-size:.68rem; color:var(--stone); }
+.inbox-email { font-size:.75rem; color:var(--muted); margin-bottom:.3rem; }
+.inbox-tour { font-size:.72rem; color:var(--gold); margin-bottom:.3rem; }
+.inbox-msg { font-size:.82rem; color:var(--ink2); line-height:1.8; }
+.inbox-del { position:absolute; top:.5rem; right:.6rem; background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--stone); width:36px; height:36px; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; }
+
+/* ── AREA TAGS ── */
+.area-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .8rem; border:1px solid var(--border); border-radius:20px; font-size:.78rem; color:var(--ink2); background:var(--cream); margin:.2rem; }
+.area-chip button { background:none; border:none; cursor:pointer; color:var(--stone); font-size:.85rem; width:28px; height:28px; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; }
+
+/* ── CALENDAR ── */
+.cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem; }
+.cal-nav h3 { margin:0; font-family:'Noto Serif JP',serif; font-size:1rem; }
+.cal-nav .btn { min-width:44px; }
+.cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:.2rem; }
+.cal-weekdays span { font-size:.65rem; padding:.3rem 0; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:1rem; }
+.cal-cell { min-height:48px; padding:3px; border:1px solid var(--border); border-radius:6px; background:var(--white); overflow:hidden; }
+.cal-cell-day { font-weight:600; font-size:.72rem; margin-bottom:1px; }
+.cal-evt-g { background:rgba(107,154,114,.2); color:#4a7a52; padding:1px 3px; border-radius:2px; font-size:.48rem; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cal-evt-m { background:rgba(184,144,74,.2); color:#8a6a30; padding:1px 3px; border-radius:2px; font-size:.48rem; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── DAY LIST ── */
+.day-row { display:flex; gap:.5rem; padding:.5rem .4rem; border-bottom:1px solid var(--border); }
+.day-badge { min-width:46px; text-align:center; padding:.25rem .3rem; border-radius:8px; flex-shrink:0; }
+.day-badge-dow { font-size:.6rem; font-weight:400; }
+.day-badge-num { font-size:1rem; font-weight:700; }
+.day-events { flex:1; display:flex; flex-direction:column; justify-content:center; gap:3px; }
+.day-evt { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; }
+.day-evt-dot { display:inline-block; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.day-evt-title { font-size:.8rem; color:var(--ink); }
+.day-evt-time { font-size:.62rem; color:var(--stone); }
+.day-evt-tag { font-size:.55rem; padding:1px 5px; border-radius:3px; }
+
+/* ── BOTTOM SHEET ── */
+.sheet-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:100; }
+.sheet-overlay.show { display:block; }
+.sheet { position:fixed; bottom:0; left:0; right:0; background:var(--white); border-radius:16px 16px 0 0; z-index:101; max-height:85vh; max-height:85dvh; overflow-y:auto; padding:1.2rem; padding-bottom:calc(1.2rem + var(--safe-bottom)); transform:translateY(100%); transition:transform .3s ease; }
+.sheet.show { transform:translateY(0); }
+.sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto .8rem; }
+.sheet h3 { font-family:'Noto Serif JP',serif; font-size:.95rem; font-weight:500; margin-bottom:1rem; text-align:center; }
+
+/* ── TOAST ── */
+.toast { position:fixed; top:calc(.8rem + var(--safe-top)); left:50%; transform:translateX(-50%) translateY(-20px); background:var(--green); color:var(--white); padding:.7rem 1.2rem; border-radius:10px; font-size:.82rem; font-weight:500; z-index:999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── PULL REFRESH HINT ── */
+.refresh-hint { text-align:center; font-size:.72rem; color:var(--stone); padding:.4rem; display:none; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">山本章二</div>
+    <div class="login-sub">管理画面</div>
+    <div class="login-field">
+      <label class="login-label">パスワード</label>
+      <input type="password" class="login-input" id="login-pw" placeholder="パスワードを入力" autofocus autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn">ログイン</button>
+    <p class="login-err" id="login-err"></p>
+  </div>
+</div>
+
+<!-- ── ADMIN APP ── -->
+<div class="admin-app" id="admin-app">
+
+  <!-- HEADER -->
+  <div class="admin-header">
+    <div class="admin-logo">管理画面</div>
+    <button class="admin-logout" id="logout-btn">ログアウト</button>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="admin-content">
+
+    <!-- INBOX TAB -->
+    <div id="tab-inbox">
+      <div class="admin-card">
+        <h3>受信メッセージ</h3>
+        <div id="inbox-list"></div>
+        <button class="btn btn-danger btn-sm" id="clear-inbox" style="display:none;margin-top:.6rem;width:100%">すべて削除</button>
+      </div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div id="tab-schedule" style="display:none">
+      <div class="admin-card">
+        <h3>スケジュール管理</h3>
+        <p class="desc">カレンダーに表示される予定を管理します。</p>
+
+        <!-- 月ナビ -->
+        <div class="cal-nav">
+          <button class="btn btn-secondary btn-sm" id="admin-cal-prev">&#8592;</button>
+          <h3 id="admin-cal-title"></h3>
+          <button class="btn btn-secondary btn-sm" id="admin-cal-next">&#8594;</button>
+        </div>
+
+        <!-- カレンダーグリッド -->
+        <div class="cal-weekdays">
+          <span style="color:#c06060;">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span style="color:#4a6fa5;">土</span>
+        </div>
+        <div class="cal-grid" id="admin-cal-grid"></div>
+
+        <!-- 日別リスト -->
+        <div id="admin-cal-daylist"></div>
+
+        <!-- 手動予定 -->
+        <div style="margin-top:1rem;">
+          <h4 style="font-size:.82rem;color:var(--ink);margin-bottom:.5rem;">手動追加の予定（この月）</h4>
+          <div id="schedule-list"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="open-add-schedule" style="margin-bottom:1rem;">予定を追加</button>
+    </div>
+
+    <!-- TOURS TAB -->
+    <div id="tab-tours" style="display:none">
+      <div class="admin-card">
+        <h3>ツアー管理</h3>
+        <p class="desc">公開サイトに表示されるツアー一覧を管理します。</p>
+        <div id="tour-list"></div>
+      </div>
+      <button class="btn btn-primary" id="add-tour-btn">ツアーを追加</button>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" style="display:none">
+      <div class="admin-card">
+        <h3>プロフィール</h3>
+        <p class="desc">編集して保存すると公開サイトに即反映されます。</p>
+        <div class="field"><textarea id="bio-text" rows="8" style="line-height:2;"></textarea></div>
+        <button class="btn btn-primary" id="save-bio-btn">保存して反映</button>
+      </div>
+      <div class="admin-card">
+        <h3>note連携</h3>
+        <p class="desc">noteのユーザー名を設定すると記事が自動表示されます。</p>
+        <div class="field"><label>noteユーザー名</label><input type="text" id="note-username" placeholder="例：yamamoto_shoji"></div>
+        <button class="btn btn-primary" id="save-note-btn">保存して反映</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="bottom-nav-btn active" data-tab="inbox">
+      <span class="nav-icon">&#9993;</span>
+      <span>メッセージ</span>
+      <span class="badge" id="inbox-badge" style="display:none">0</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="schedule">
+      <span class="nav-icon">&#128197;</span>
+      <span>スケジュール</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="tours">
+      <span class="nav-icon">&#9968;</span>
+      <span>ツアー</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="profile">
+      <span class="nav-icon">&#9881;</span>
+      <span>設定</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ── SCHEDULE BOTTOM SHEET ── -->
+<div class="sheet-overlay" id="sc-overlay"></div>
+<div class="sheet" id="sc-sheet">
+  <div class="sheet-handle"></div>
+  <h3 id="sc-sheet-title">予定を追加</h3>
+  <div class="field"><label>開始日</label><input type="date" id="sc-date"></div>
+  <div class="field"><label>終了日（任意）</label><input type="date" id="sc-date-end"></div>
+  <div class="field"><label>タイトル</label><input type="text" id="sc-title" placeholder="例：丹沢ハイキング"></div>
+  <div class="field"><label>時間（任意）</label><input type="text" id="sc-time" placeholder="例：09:00 または 終日"></div>
+  <div class="field"><label>詳細（任意）</label><textarea id="sc-desc" rows="2" placeholder="詳細説明"></textarea></div>
+  <button class="btn btn-primary" id="sc-add-btn" onclick="addScheduleEvent()">予定を追加</button>
+  <button class="btn btn-secondary" style="width:100%;margin-top:.5rem" onclick="closeScheduleSheet()">キャンセル</button>
+</div>
+
+<!-- ── TOUR BOTTOM SHEET ── -->
+<div class="sheet-overlay" id="tour-overlay"></div>
+<div class="sheet" id="tour-sheet">
+  <div class="sheet-handle"></div>
+  <h3 id="tour-form-title">ツアーを追加</h3>
+  <input type="hidden" id="tour-edit-idx">
+  <div class="field"><label>日付</label><input type="text" id="tf-date" placeholder="例：5月21日（土）"></div>
+  <div class="field"><label>タイトル</label><input type="text" id="tf-title" placeholder="ツアー名"></div>
+  <div class="field"><label>詳細</label><textarea id="tf-detail" rows="3" placeholder="詳細説明"></textarea></div>
+  <div class="field"><label>レベル</label><input type="text" id="tf-level" placeholder="例：初心者、中級者"></div>
+  <button class="btn btn-primary" id="tour-save-btn">保存</button>
+  <button class="btn btn-secondary" style="width:100%;margin-top:.5rem" onclick="closeTourSheet()">キャンセル</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE ──
+var SUPABASE_URL = 'https://jtwpepzmrdtwgawpgpuc.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_GG-4ofWJBGkm9JkCj7kqUg_KzMoTeI9';
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+async function dbGet(key) {
+  var local = JSON.parse(localStorage.getItem(key) || 'null');
+  if (!sb) return local;
+  try {
+    var result = await sb.from('site_settings').select('value').eq('key', key).single();
+    if (result.error || !result.data || result.data.value == null) return local;
+    var val = result.data.value;
+    localStorage.setItem(key, JSON.stringify(val));
+    return val;
+  } catch(e) { return local; }
+}
+async function dbSet(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+  if (!sb) return;
+  try { await sb.from('site_settings').upsert({key:key, value:value, updated_at:new Date().toISOString()}); } catch(e) {}
+}
+async function dbGetInbox() {
+  if (!sb) return JSON.parse(localStorage.getItem('inbox_messages') || '[]');
+  try {
+    var r = await sb.from('inbox_messages').select('*').order('created_at', {ascending:false});
+    return r.data || JSON.parse(localStorage.getItem('inbox_messages') || '[]');
+  } catch(e) { return JSON.parse(localStorage.getItem('inbox_messages') || '[]'); }
+}
+async function dbDeleteMsg(id) {
+  localStorage.setItem('inbox_messages', JSON.stringify(
+    JSON.parse(localStorage.getItem('inbox_messages') || '[]').filter(function(m){ return m.id !== id; })
+  ));
+  if (!sb) return;
+  try { await sb.from('inbox_messages').delete().eq('id', id); } catch(e) {}
+}
+async function dbClearInbox() {
+  localStorage.removeItem('inbox_messages');
+  if (!sb) return;
+  try { await sb.from('inbox_messages').delete().neq('id', 0); } catch(e) {}
+}
+async function dbMarkRead() {
+  if (!sb) return;
+  try { await sb.from('inbox_messages').update({read:true}).eq('read', false); } catch(e) {}
+}
+
+var GCAL_ID = 'ad5ce03796405955407bce98ed5bb7247b305dd5b9832bceb54f0caeea2593c2@group.calendar.google.com';
+var GCAL_KEY = 'AIzaSyCZO_mVhD4xVb_mxDn1vdQEQf-scGlRiOc';
+var adminCalYear, adminCalMonth;
+var googleEvents = {};
+var cachedCalEvents = null;
+var ADMIN_PASS = 'yamamoto2024';
+var DEFAULT_TOURS = [
+  {date:'5月21日（土）', title:'はじめての地図読み・西丹沢前衛／シダンゴ山', detail:'日帰り：歩行3時間　地図まったくの初心者向け。', level:'初心者'},
+  {date:'5月22日（日）', title:'富士山展望ハイク・新緑の王岳', detail:'日帰り：歩行5時間20分。残雪の富士と静寂の西湖を仰ぎ見ながら。', level:'中級者'},
+  {date:'5月28〜29日', title:'はじめての山小屋泊・雲取山と雲取山荘', detail:'1泊2日。東京都最高峰・日本百名山。', level:'初〜中級'},
+  {date:'7月2〜3日', title:'今年こそ富士山へ vol.1・吉田口登山道', detail:'1泊2日。富士山シーズンのトップバッター。', level:'全レベル'},
+];
+var DEFAULT_AREAS = ['北アルプス','南アルプス','八ヶ岳','丹沢','富士山','その他'];
+var DEFAULT_BIO = '飲食業・人材派遣・山小屋勤務・地域おこし協力隊・リゾートホテルと、多様なフィールドを渡り歩いてきた。その根底にあるのは、いつも「山」への想いだった。2024年、エベレスト（8,848m）登頂を達成。現在は、高所での経験と、長年にわたるサービス業・組織運営の実践知を融合させ、安全で充実した山の体験を届ける登山ガイドをメインに精力的に活動中。ガイド領域はクライミング・沢登り・アルパイン・冬山・バックカントリー。';
+
+// ── STATE ──
+var isLoggedIn = false;
+var tours = DEFAULT_TOURS;
+var currentTab = 'inbox';
+var editingTourIdx = -1;
+var editingScIdx = -1;
+
+// ── TOAST ──
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+
+// ── LOGIN ──
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pw').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
+function doLogin() {
+  var pw = document.getElementById('login-pw').value;
+  if (pw === ADMIN_PASS) {
+    isLoggedIn = true;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-err').textContent = 'パスワードが違います';
+  }
+}
+
+document.getElementById('logout-btn').addEventListener('click', function() {
+  isLoggedIn = false;
+  document.getElementById('admin-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-err').textContent = '';
+});
+
+// ── BOTTOM NAV TABS ──
+document.querySelectorAll('.bottom-nav-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.bottom-nav-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    ['inbox','schedule','tours','profile'].forEach(function(t){
+      var el = document.getElementById('tab-'+t);
+      if (el) el.style.display = t === currentTab ? 'block' : 'none';
+    });
+    // scroll to top on tab change
+    window.scrollTo(0, 0);
+  });
+});
+
+// ── LOAD ALL ──
+async function loadAll() {
+  tours = await dbGet('admin_tours') || DEFAULT_TOURS;
+  cachedCalEvents = await dbGet('admin_cal_events') || [];
+  await renderInbox();
+  initAdminCal();
+  await renderSchedule();
+  renderTours();
+  await loadBio();
+  await loadNote();
+}
+
+// ── INBOX ──
+async function renderInbox() {
+  var inbox = await dbGetInbox();
+  var el = document.getElementById('inbox-list');
+  var clearBtn = document.getElementById('clear-inbox');
+  var badge = document.getElementById('inbox-badge');
+
+  // Count unread
+  var unreadCount = inbox.filter(function(m){ return m.unread || m.read === false; }).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  if (inbox.length === 0) {
+    el.innerHTML = '<p style="font-size:.85rem;color:var(--stone);text-align:center;padding:2rem">メッセージはありません</p>';
+    clearBtn.style.display = 'none';
+    return;
+  }
+  clearBtn.style.display = 'block';
+
+  el.innerHTML = inbox.map(function(m) {
+    var isUnread = m.unread || m.read === false;
+    var date = m.date || (m.created_at ? new Date(m.created_at).toLocaleDateString('ja-JP') : '');
+    return '<div class="inbox-item ' + (isUnread ? 'unread' : '') + '">' +
+      '<button class="inbox-del" onclick="deleteMsg(' + m.id + ')">&#10005;</button>' +
+      '<div class="inbox-head"><span class="inbox-name">' + (m.name||'名無し') + (isUnread ? ' <span style="color:var(--gold);font-size:.65rem">NEW</span>' : '') + '</span>' +
+      '<span class="inbox-date">' + date + '</span></div>' +
+      '<div class="inbox-email">' + (m.email||'') + '</div>' +
+      '<div class="inbox-msg">' + (m.message||'').replace(/</g,'&lt;') + '</div></div>';
+  }).join('');
+
+  dbMarkRead();
+}
+
+async function deleteMsg(id) {
+  if (!confirm('このメッセージを削除しますか？')) return;
+  await dbDeleteMsg(id);
+  await renderInbox();
+  toast('削除しました');
+}
+
+document.getElementById('clear-inbox').addEventListener('click', async function() {
+  if (confirm('すべてのメッセージを削除しますか？')) {
+    await dbClearInbox();
+    await renderInbox();
+    toast('すべて削除しました');
+  }
+});
+
+// ── TOURS ──
+function renderTours() {
+  var el = document.getElementById('tour-list');
+  if (tours.length === 0) {
+    el.innerHTML = '<p style="font-size:.85rem;color:var(--stone);text-align:center;padding:1rem">ツアーがありません</p>';
+    return;
+  }
+  el.innerHTML = tours.map(function(t, i) {
+    return '<div class="tour-item"><div class="tour-item-info">' +
+      '<div class="tour-item-date">' + t.date + '</div>' +
+      '<div class="tour-item-title">' + t.title + '</div></div>' +
+      '<div class="tour-item-btns">' +
+      '<button class="btn btn-secondary btn-sm" onclick="editTour(' + i + ')">編集</button>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteTour(' + i + ')">削除</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function saveTours() { dbSet('admin_tours', tours); }
+
+document.getElementById('add-tour-btn').addEventListener('click', function() {
+  editingTourIdx = -1;
+  document.getElementById('tour-form-title').textContent = '新しいツアーを追加';
+  ['tf-date','tf-title','tf-detail','tf-level'].forEach(function(id){ document.getElementById(id).value = ''; });
+  openTourSheet();
+});
+
+function editTour(i) {
+  editingTourIdx = i;
+  var t = tours[i];
+  document.getElementById('tour-form-title').textContent = 'ツアーを編集';
+  document.getElementById('tf-date').value = t.date;
+  document.getElementById('tf-title').value = t.title;
+  document.getElementById('tf-detail').value = t.detail;
+  document.getElementById('tf-level').value = t.level;
+  openTourSheet();
+}
+
+function deleteTour(i) {
+  if (confirm('「' + tours[i].title.slice(0,20) + '」を削除しますか？')) {
+    tours.splice(i, 1);
+    saveTours();
+    renderTours();
+    toast('ツアーを削除しました');
+  }
+}
+
+document.getElementById('tour-save-btn').addEventListener('click', function() {
+  var t = {
+    date: document.getElementById('tf-date').value.trim(),
+    title: document.getElementById('tf-title').value.trim(),
+    detail: document.getElementById('tf-detail').value.trim(),
+    level: document.getElementById('tf-level').value.trim(),
+  };
+  if (!t.title) { alert('タイトルを入力してください'); return; }
+  if (editingTourIdx >= 0) tours[editingTourIdx] = t;
+  else tours.push(t);
+  saveTours();
+  renderTours();
+  closeTourSheet();
+  toast(editingTourIdx >= 0 ? '更新しました' : '追加しました');
+});
+
+function openTourSheet() {
+  document.getElementById('tour-overlay').classList.add('show');
+  document.getElementById('tour-sheet').classList.add('show');
+}
+function closeTourSheet() {
+  document.getElementById('tour-overlay').classList.remove('show');
+  document.getElementById('tour-sheet').classList.remove('show');
+}
+document.getElementById('tour-overlay').addEventListener('click', closeTourSheet);
+
+// ── PROFILE ──
+async function loadBio() {
+  var bio = await dbGet('admin_bio');
+  document.getElementById('bio-text').value = (typeof bio === 'string' && bio) ? bio : DEFAULT_BIO;
+}
+document.getElementById('save-bio-btn').addEventListener('click', async function() {
+  var bio = document.getElementById('bio-text').value.trim();
+  await dbSet('admin_bio', bio);
+  toast('プロフィールを保存しました');
+});
+
+// ── NOTE ──
+async function loadNote() {
+  var username = await dbGet('note_username') || '';
+  document.getElementById('note-username').value = typeof username === 'string' ? username : '';
+}
+document.getElementById('save-note-btn').addEventListener('click', async function() {
+  var username = document.getElementById('note-username').value.trim().replace(/^@/, '');
+  if (!username) { alert('ユーザー名を入力してください'); return; }
+  await dbSet('note_username', username);
+  toast('noteアカウントを保存しました');
+});
+
+// ── CALENDAR ──
+function initAdminCal() {
+  var now = new Date();
+  adminCalYear = now.getFullYear();
+  adminCalMonth = now.getMonth();
+  setupCalNav();
+  fetchGoogleEvents(adminCalYear, adminCalMonth);
+  renderAdminCal();
+}
+
+function updateScDateDefault() {
+  var defaultDate = adminCalYear + '-' + String(adminCalMonth + 1).padStart(2, '0') + '-01';
+  var el = document.getElementById('sc-date');
+  if (el) el.value = defaultDate;
+  var elEnd = document.getElementById('sc-date-end');
+  if (elEnd) elEnd.value = defaultDate;
+}
+
+function renderAdminCal() {
+  updateScDateDefault();
+  var weekdays = ['日','月','火','水','木','金','土'];
+  var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var titleEl = document.getElementById('admin-cal-title');
+  if (titleEl) titleEl.textContent = adminCalYear + '年 ' + monthNames[adminCalMonth];
+
+  var daysInMonth = new Date(adminCalYear, adminCalMonth + 1, 0).getDate();
+  var firstDay = new Date(adminCalYear, adminCalMonth, 1).getDay();
+  var today = new Date();
+  var manualEvts = cachedCalEvents || [];
+
+  // Calendar grid
+  var grid = document.getElementById('admin-cal-grid');
+  if (grid) {
+    var gHtml = '';
+    var total = firstDay + daysInMonth;
+    total = total % 7 ? total + (7 - total % 7) : total;
+    for (var gi = 0; gi < total; gi++) {
+      var gd, gOther = false, gToday = false;
+      if (gi < firstDay) { gd = new Date(adminCalYear, adminCalMonth, 0).getDate() - firstDay + gi + 1; gOther = true; }
+      else if (gi >= firstDay + daysInMonth) { gd = gi - firstDay - daysInMonth + 1; gOther = true; }
+      else { gd = gi - firstDay + 1; gToday = (adminCalYear === today.getFullYear() && adminCalMonth === today.getMonth() && gd === today.getDate()); }
+      var gKey = adminCalYear + '-' + (adminCalMonth + 1) + '-' + gd;
+      var gKeyPad = adminCalYear + '-' + String(adminCalMonth + 1).padStart(2,'0') + '-' + String(gd).padStart(2,'0');
+      var gE = googleEvents[gKey] || [];
+      var mE = gOther ? [] : manualEvts.filter(function(e){ return e.date === gKeyPad; });
+      var gBg = gToday ? 'var(--gold)' : (gOther ? '#f5f3ee' : 'var(--white)');
+      var gCol = gToday ? '#fff' : (gOther ? 'var(--stone)' : 'var(--ink)');
+      var gDow = new Date(adminCalYear, adminCalMonth, gOther ? 1 : gd).getDay();
+      if (!gOther && !gToday && gDow === 0) gCol = '#c06060';
+      if (!gOther && !gToday && gDow === 6) gCol = '#4a6fa5';
+      gHtml += '<div class="cal-cell" style="background:' + gBg + ';color:' + gCol + ';">';
+      gHtml += '<div class="cal-cell-day">' + gd + '</div>';
+      gE.forEach(function(e){ gHtml += '<div class="cal-evt-g">' + e.title + '</div>'; });
+      mE.forEach(function(e){ gHtml += '<div class="cal-evt-m">' + e.title + '</div>'; });
+      gHtml += '</div>';
+    }
+    grid.innerHTML = gHtml;
+  }
+
+  // Day list
+  var container = document.getElementById('admin-cal-daylist');
+  if (!container) return;
+  var html = '';
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dow = new Date(adminCalYear, adminCalMonth, d).getDay();
+    var isToday = (adminCalYear === today.getFullYear() && adminCalMonth === today.getMonth() && d === today.getDate());
+    var dateKey = adminCalYear + '-' + (adminCalMonth + 1) + '-' + d;
+    var dateKeyPad = adminCalYear + '-' + String(adminCalMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var gEvts = googleEvents[dateKey] || [];
+    var mEvts = manualEvts.filter(function(e) { return e.date === dateKeyPad; });
+    var hasEvents = gEvts.length > 0 || mEvts.length > 0;
+
+    var dayBg = isToday ? 'var(--gold)' : (dow === 0 ? '#fdf2f2' : (dow === 6 ? '#f0f4fd' : 'var(--white)'));
+    var dayColor = isToday ? 'var(--white)' : (dow === 0 ? '#c06060' : (dow === 6 ? '#4a6fa5' : 'var(--ink)'));
+    var border = isToday ? '2px solid var(--gold)' : '1px solid ' + (hasEvents ? 'var(--gold)' : 'var(--border)');
+
+    html += '<div class="day-row"' + (isToday ? ' style="background:rgba(184,144,74,.08);"' : '') + '>';
+    html += '<div class="day-badge" style="background:' + dayBg + ';color:' + dayColor + ';border:' + border + ';">';
+    html += '<div class="day-badge-dow">' + weekdays[dow] + '</div>';
+    html += '<div class="day-badge-num">' + d + '</div></div>';
+    html += '<div class="day-events">';
+    if (!hasEvents) {
+      html += '<span style="font-size:.75rem;color:var(--stone);">—</span>';
+    }
+    gEvts.forEach(function(e) {
+      html += '<div class="day-evt"><span class="day-evt-dot" style="background:#6b9a72;"></span><span class="day-evt-title">' + e.title + '</span><span class="day-evt-time">' + e.time + '</span><span class="day-evt-tag" style="color:#6b9a72;background:rgba(107,154,114,.15);">Google</span></div>';
+    });
+    mEvts.forEach(function(e) {
+      html += '<div class="day-evt"><span class="day-evt-dot" style="background:var(--gold);"></span><span class="day-evt-title">' + e.title + '</span><span class="day-evt-time">' + (e.time || '') + '</span><span class="day-evt-tag" style="color:var(--gold);background:rgba(184,144,74,.15);">手動</span></div>';
+    });
+    html += '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+function fetchGoogleEvents(year, month) {
+  var timeMin = new Date(year, month, 1).toISOString();
+  var timeMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+  var url = 'https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(GCAL_ID) + '/events?singleEvents=true&orderBy=startTime&timeMin=' + timeMin + '&timeMax=' + timeMax + '&key=' + GCAL_KEY;
+  fetch(url).then(function(r){ return r.json(); }).then(function(data) {
+    if (!data.items) return;
+    data.items.forEach(function(item) {
+      var start = item.start.dateTime || item.start.date;
+      var d = new Date(start);
+      var k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+      if (!googleEvents[k]) googleEvents[k] = [];
+      var time = item.start.dateTime ? d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') : '終日';
+      googleEvents[k].push({ title: item.summary || '無題', time: time, desc: item.description || '' });
+    });
+    renderAdminCal();
+  }).catch(function(){});
+}
+
+function setupCalNav() {
+  var prevBtn = document.getElementById('admin-cal-prev');
+  var nextBtn = document.getElementById('admin-cal-next');
+  if (prevBtn) prevBtn.onclick = function() {
+    adminCalMonth--; if (adminCalMonth < 0) { adminCalMonth = 11; adminCalYear--; }
+    googleEvents = {};
+    fetchGoogleEvents(adminCalYear, adminCalMonth);
+    renderAdminCal();
+    renderSchedule();
+  };
+  if (nextBtn) nextBtn.onclick = function() {
+    adminCalMonth++; if (adminCalMonth > 11) { adminCalMonth = 0; adminCalYear++; }
+    googleEvents = {};
+    fetchGoogleEvents(adminCalYear, adminCalMonth);
+    renderAdminCal();
+    renderSchedule();
+  };
+}
+
+// ── SCHEDULE ──
+async function getCalEvents() {
+  if (cachedCalEvents !== null && cachedCalEvents !== undefined) return cachedCalEvents;
+  cachedCalEvents = await dbGet('admin_cal_events') || [];
+  return cachedCalEvents;
+}
+async function saveCalEvents(evts) {
+  cachedCalEvents = evts;
+  await dbSet('admin_cal_events', evts);
+}
+async function renderSchedule() {
+  var el = document.getElementById('schedule-list');
+  if (!el) return;
+  var evts = await getCalEvents();
+  var y = adminCalYear;
+  var m = adminCalMonth;
+  var monthStr = y + '-' + String(m + 1).padStart(2, '0');
+  var monthEvts = evts.map(function(e, i){ return Object.assign({}, e, {_idx: i}); }).filter(function(e){ return e.date && e.date.startsWith(monthStr); });
+  var monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var label = y + '年' + monthNames[m];
+
+  if (monthEvts.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--stone);text-align:center;padding:.8rem">' + label + 'の手動予定はありません</p>';
+    return;
+  }
+  el.innerHTML = monthEvts.map(function(e) {
+    return '<div class="tour-item"><div class="tour-item-info">' +
+      '<div class="tour-item-date">' + e.date + ' ' + (e.time || '') + '</div>' +
+      '<div class="tour-item-title">' + e.title + '</div>' +
+      (e.desc ? '<div style="font-size:.72rem;color:var(--stone);margin-top:.2rem;">' + e.desc + '</div>' : '') +
+      '</div><div class="tour-item-btns">' +
+      '<button class="btn btn-secondary btn-sm" onclick="editSchedule(' + e._idx + ')">編集</button>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteSchedule(' + e._idx + ')">削除</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function deleteSchedule(i) {
+  var evts = await getCalEvents();
+  if (!confirm('「' + evts[i].title.slice(0,20) + '」を削除しますか？')) return;
+  evts.splice(i, 1);
+  await saveCalEvents(evts);
+  await renderSchedule();
+  renderAdminCal();
+  toast('予定を削除しました');
+}
+
+async function editSchedule(i) {
+  editingScIdx = i;
+  var e = (await getCalEvents())[i];
+  document.getElementById('sc-date').value = e.date;
+  document.getElementById('sc-date-end').value = '';
+  document.getElementById('sc-title').value = e.title;
+  document.getElementById('sc-time').value = e.time || '';
+  document.getElementById('sc-desc').value = e.desc || '';
+  document.getElementById('sc-add-btn').textContent = '更新する';
+  document.getElementById('sc-sheet-title').textContent = '予定を編集';
+  openScheduleSheet();
+}
+
+function getDateRange(startStr, endStr) {
+  var dates = [];
+  var start = new Date(startStr);
+  var end = endStr ? new Date(endStr) : start;
+  if (end < start) return [startStr];
+  var cur = new Date(start);
+  while (cur <= end) {
+    dates.push(cur.toISOString().split('T')[0]);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+async function addScheduleEvent() {
+  try {
+    var date = document.getElementById('sc-date').value;
+    var dateEnd = document.getElementById('sc-date-end').value;
+    var title = document.getElementById('sc-title').value.trim();
+    var time = document.getElementById('sc-time').value.trim() || '終日';
+    var desc = document.getElementById('sc-desc').value.trim();
+    if (!date || !title) { alert('開始日とタイトルを入力してください'); return; }
+    var wasEditing = editingScIdx >= 0;
+    var dates = getDateRange(date, dateEnd);
+    if (!cachedCalEvents) cachedCalEvents = [];
+    if (wasEditing) {
+      cachedCalEvents[editingScIdx] = { date: date, title: title, time: time, desc: desc };
+      editingScIdx = -1;
+    } else {
+      for (var di = 0; di < dates.length; di++) {
+        cachedCalEvents.push({ date: dates[di], title: title, time: time, desc: desc });
+      }
+    }
+    cachedCalEvents.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    // Clear form
+    document.getElementById('sc-date').value = '';
+    document.getElementById('sc-date-end').value = '';
+    document.getElementById('sc-title').value = '';
+    document.getElementById('sc-time').value = '';
+    document.getElementById('sc-desc').value = '';
+    // Switch calendar to added month
+    var addedDate = new Date(date);
+    adminCalYear = addedDate.getFullYear();
+    adminCalMonth = addedDate.getMonth();
+    // Update UI
+    renderAdminCal();
+    renderSchedule();
+    closeScheduleSheet();
+    toast(wasEditing ? '予定を更新しました' : (dates.length > 1 ? dates.length + '日分追加しました' : '予定を追加しました'));
+    // Save
+    localStorage.setItem('admin_cal_events', JSON.stringify(cachedCalEvents));
+    if (sb) { try { await sb.from('site_settings').upsert({key:'admin_cal_events', value:cachedCalEvents, updated_at:new Date().toISOString()}); } catch(e){} }
+  } catch(e) {
+    alert('エラー: ' + e.message);
+  }
+}
+
+// ── SCHEDULE SHEET ──
+document.getElementById('open-add-schedule').addEventListener('click', function() {
+  editingScIdx = -1;
+  document.getElementById('sc-add-btn').textContent = '予定を追加';
+  document.getElementById('sc-sheet-title').textContent = '予定を追加';
+  updateScDateDefault();
+  document.getElementById('sc-title').value = '';
+  document.getElementById('sc-time').value = '';
+  document.getElementById('sc-desc').value = '';
+  openScheduleSheet();
+});
+
+function openScheduleSheet() {
+  document.getElementById('sc-overlay').classList.add('show');
+  document.getElementById('sc-sheet').classList.add('show');
+}
+function closeScheduleSheet() {
+  document.getElementById('sc-overlay').classList.remove('show');
+  document.getElementById('sc-sheet').classList.remove('show');
+  editingScIdx = -1;
+  document.getElementById('sc-add-btn').textContent = '予定を追加';
+  document.getElementById('sc-sheet-title').textContent = '予定を追加';
+}
+document.getElementById('sc-overlay').addEventListener('click', closeScheduleSheet);
+</script>
+</body>
+</html>
