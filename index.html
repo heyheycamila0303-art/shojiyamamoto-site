@@ -1794,7 +1794,7 @@ try { renderPublicAreas(); } catch(e) {}
     var areasData = await window.dbGet('admin_areas');
     if (areasData) { localStorage.setItem('admin_areas', JSON.stringify(areasData)); var c=document.querySelector('.area-tags'); if(c)c.innerHTML=areasData.map(function(a){return '<span class="area-tag">'+a+'</span>'}).join(''); }
     var calData = await window.dbGet('admin_cal_events');
-    if (calData) { localStorage.setItem('admin_cal_events', JSON.stringify(calData)); _cachedManualEvts=null; }
+    if (calData) { localStorage.setItem('admin_cal_events', JSON.stringify(calData)); _cachedManualEvts=null; if (typeof mergeAndRenderCal==='function') mergeAndRenderCal(); }
     if (typeof renderPublicTours==='function') renderPublicTours();
   } catch(e) { console.warn('Supabase sync error:', e); }
 
